@@ -1,0 +1,19 @@
+YB Second Wind
+Copyright 2026 Jonathan Kinred
+
+Licensed under the Apache License, Version 2.0; see LICENSE.
+
+Provenance
+----------
+The Yellowbrick v3 Bluetooth protocol implemented here is documented in
+docs/PROTOCOL.md. It was established by interoperability analysis of the
+vendor's discontinued Android app (no specification being otherwise
+available), by HCI tracing and live exchanges with a real device, and by
+offline analysis of its firmware. No vendor source code, binaries, resources
+or documents are included in or were copied into this repository.
+
+Trademarks
+----------
+"Yellowbrick", "YB" and "YB Tracking" are marks of YB Tracking Ltd. They are
+used here only to identify the device this software interoperates with.
+This project is not affiliated with, endorsed by or supported by YB Tracking Ltd.

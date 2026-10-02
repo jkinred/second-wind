@@ -1,0 +1,24 @@
+# Vendor material: never commit. Keep in a separate private directory.
+*.apk
+*.bin
+*.btsnoop
+*.pdf
+/vendor/
+/reverse/
+
+# Build outputs
+/build/
+/app/build/
+/.gradle/
+/.kotlin/
+/local.properties
+/dist/
+
+# Signing material — back up out of band; never commit
+/keystore/
+/keystore.properties
+
+__pycache__/
+*.pyc
+.idea/
+*.iml

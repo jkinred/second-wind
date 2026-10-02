@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Sail with a wind stroke: "second wind", and the device's sailing user base. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- mainsail -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M56,24 L56,70 L32,70 C38,56 46,40 56,24 Z" />
+    <!-- jib -->
+    <path
+        android:fillColor="#FFD54F"
+        android:pathData="M60,34 L60,70 L80,70 C74,58 68,46 60,34 Z" />
+    <!-- hull -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M28,74 L84,74 L78,82 L34,82 Z" />
+    <!-- wind strokes -->
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:pathData="M14,40 L26,40 M10,48 L24,48" />
+</vector>
