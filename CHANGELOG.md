@@ -2,6 +2,14 @@
 
 All notable changes to YB Second Wind. Format follows Keep a Changelog; versions follow SemVer.
 
+## [0.1.3] — 2026-10-03
+
+### Changed
+- Application id and package renamed from `org.yb.secondwind` to `io.github.jkinred.secondwind`. Android treats this as a new app: install 0.1.3 alongside, then uninstall the old one; settings and messages do not carry over.
+- Launcher icon is now the Yellowbrick glyph on yellow, matching the in-app connect pill.
+- Device sheet: Connect/Disconnect is a full-width button under the device name instead of beside it, so long device names no longer wrap.
+- Settings: "Scan for Yellowbricks" → "Scan for devices".
+
 ## [0.1.2] — 2026-10-03
 
 ### Changed

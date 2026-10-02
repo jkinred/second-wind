@@ -13,15 +13,15 @@ val keystoreProps = Properties().apply {
 }
 
 android {
-    namespace = "org.yb.secondwind"
+    namespace = "io.github.jkinred.secondwind"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "org.yb.secondwind"
+        applicationId = "io.github.jkinred.secondwind"
         minSdk = 31
         targetSdk = 35
-        versionCode = 3
-        versionName = "0.1.2"
+        versionCode = 4
+        versionName = "0.1.3"
         androidResources { localeFilters += "en" }
     }
 
