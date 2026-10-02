@@ -46,6 +46,7 @@ fun HomeScreen(
     queued: Int,
     onDismissProblem: () -> Unit,
     onConnect: () -> Unit,
+    onDisconnect: () -> Unit,
     onStatus: () -> Unit,
     onOpen: (Thread) -> Unit,
     onNew: () -> Unit,
@@ -54,7 +55,12 @@ fun HomeScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Second Wind") },
-                actions = { StatusChip(state, bluetoothOn, onStatus); Spacer(Modifier.width(8.dp)) },
+                colors = ybTopBarColors(),
+                actions = {
+                    SettingsPill(onStatus)
+                    ConnectPill(state, bluetoothOn, onConnect = onConnect, onDisconnect = onDisconnect, onOpenSheet = onStatus)
+                    Spacer(Modifier.width(8.dp))
+                },
             )
         },
         floatingActionButton = { FloatingActionButton(onClick = onNew) { Icon(Icons.Default.Edit, "New message") } },
@@ -69,7 +75,7 @@ fun HomeScreen(
                 Column(Modifier.padding(24.dp)) {
                     Text("No conversations yet", style = MaterialTheme.typography.titleMedium)
                     Text(
-                        if (state.data.settings.deviceAddress.isEmpty()) "Tap the status chip to choose your Yellowbrick and enter your keyword and password."
+                        if (state.data.settings.deviceAddress.isEmpty()) "Tap ⚙ to choose your Yellowbrick and enter your keyword and password."
                         else "Tap ✎ to write your first message.",
                         style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

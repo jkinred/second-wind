@@ -91,6 +91,8 @@ fun ThreadScreen(
     bluetoothOn: Boolean,
     onBack: () -> Unit,
     onStatus: () -> Unit,
+    onConnect: () -> Unit,
+    onDisconnect: () -> Unit,
     onQueue: (addresses: List<String>, text: String) -> Unit,
     onDelete: (Message) -> Unit,
     onMerge: (absorb: String) -> Unit,
@@ -130,15 +132,17 @@ fun ThreadScreen(
         topBar = {
             TopAppBar(
                 title = { Text(title, maxLines = 1) },
+                colors = ybTopBarColors(),
                 navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } },
                 actions = {
-                    StatusChip(state, bluetoothOn, onStatus)
                     if (canMerge) {
                         IconButton(onClick = { menu = true }) { Icon(Icons.Default.MoreVert, "More") }
                         DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                             DropdownMenuItem(text = { Text("Merge with another conversation…") }, onClick = { menu = false; merging = true })
                         }
-                    } else Spacer(Modifier.width(8.dp))
+                    }
+                    ConnectPill(state, bluetoothOn, onConnect = onConnect, onDisconnect = onDisconnect, onOpenSheet = onStatus)
+                    Spacer(Modifier.width(8.dp))
                 },
             )
         },

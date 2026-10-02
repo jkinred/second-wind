@@ -90,7 +90,7 @@ fun App(vm: Messenger, version: String) {
     when (val s = screen) {
         Screen.Home -> HomeScreen(
             state = state, threads = threads, bluetoothOn = bluetoothOn, problem = problem, queued = queued,
-            onDismissProblem = vm::dismissProblem, onConnect = connect, onStatus = { sheet = true },
+            onDismissProblem = vm::dismissProblem, onConnect = connect, onDisconnect = vm::disconnect, onStatus = { sheet = true },
             onOpen = { t -> vm.markRead(t.key); screen = Screen.Thread(t.identities, t.group) },
             onNew = { screen = Screen.New },
         )
@@ -102,7 +102,7 @@ fun App(vm: Messenger, version: String) {
             ThreadScreen(
                 state = state, identities = s.identities, preferred = s.preferred, group = s.group, thread = thread, otherThreads = others,
                 bluetoothOn = bluetoothOn,
-                onBack = { screen = Screen.Home }, onStatus = { sheet = true },
+                onBack = { screen = Screen.Home }, onStatus = { sheet = true }, onConnect = connect, onDisconnect = vm::disconnect,
                 onQueue = { addrs, text -> vm.queue(addrs, text, s.group); if (state.link == Link.DISCONNECTED && state.problem == null) connect() },
                 onDelete = { vm.delete(it.id) },
                 onMerge = { absorb -> vm.mergeContacts(keep = s.identities.single(), absorb = absorb) },
@@ -120,11 +120,10 @@ fun App(vm: Messenger, version: String) {
         Screen.Settings -> SettingsScreen(
             vm, state.data.settings, contacts.sortedBy { it.display.lowercase() }, granted,
             onBack = { screen = Screen.Home }, onTroubleshooting = { screen = Screen.Troubleshooting }, onAbout = { screen = Screen.About },
-            onManual = { screen = Screen.Manual },
         )
         Screen.Troubleshooting -> TroubleshootingScreen(vm, state.log, state.data.settings.deviceName, onBack = { screen = Screen.Settings })
         Screen.About -> AboutScreen(version, onBack = { screen = Screen.Settings })
-        Screen.Manual -> ManualScreen(onBack = { screen = Screen.Settings })
+        Screen.Manual -> ManualScreen(onBack = { screen = Screen.Home })
     }
 
     if (sheet) DeviceSheet(
@@ -135,5 +134,6 @@ fun App(vm: Messenger, version: String) {
         onPull = vm::pullNow,
         onSettings = { sheet = false; screen = Screen.Settings },
         onTroubleshooting = { sheet = false; screen = Screen.Troubleshooting },
+        onGuide = { sheet = false; screen = Screen.Manual },
     )
 }

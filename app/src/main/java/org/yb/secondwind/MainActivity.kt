@@ -1,9 +1,11 @@
 package org.yb.secondwind
 
 import android.os.Bundle
+import android.graphics.Color
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.SystemBarStyle
 import androidx.activity.viewModels
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
@@ -19,7 +21,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+        // The top bar is Yellowbrick yellow in both themes, so status-bar icons must always be dark.
+        enableEdgeToEdge(statusBarStyle = SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT))
         val version = packageManager.getPackageInfo(packageName, 0).versionName ?: ""
         setContent { AppTheme { Surface { App(vm, version) } } }
     }

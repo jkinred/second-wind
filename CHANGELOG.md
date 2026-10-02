@@ -2,6 +2,14 @@
 
 All notable changes to YB Second Wind. Format follows Keep a Changelog; versions follow SemVer.
 
+## [0.1.2] — 2026-10-03
+
+### Changed
+- Top bar is Yellowbrick yellow (amber in dark theme) on every screen; status-bar icons stay dark.
+- Status chip replaced by two icon pills: ⚙ opens the device sheet; a Yellowbrick glyph toggles connect/disconnect (filled when connected, spinner while connecting, red badge when something blocks connecting — tap then opens the sheet). Long-press the glyph for the sheet. Thread screen shows only the connect pill, in the same position as Home.
+- Credit balance moved from the bar to the device sheet.
+- Device guide moved from Settings to the device sheet, below "Pull messages now".
+
 ## [0.1.1] — 2026-10-03
 
 ### Added

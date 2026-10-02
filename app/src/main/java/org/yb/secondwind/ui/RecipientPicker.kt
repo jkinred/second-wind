@@ -24,6 +24,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -96,11 +97,13 @@ fun RecipientPicker(
         topBar = {
             TopAppBar(
                 title = { Text("New message") },
+                colors = ybTopBarColors(),
                 navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } },
                 actions = {
                     TextButton(
                         enabled = chosen.isNotEmpty() || group || typed.isNotBlank(),
                         onClick = { commitTyped(); onNext(chosen.toList(), group) },
+                        colors = ButtonDefaults.textButtonColors(contentColor = OnYellow, disabledContentColor = OnYellow.copy(alpha = 0.38f)),
                     ) { Text("Next") }
                 },
             )

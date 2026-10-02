@@ -1,14 +1,20 @@
 package org.yb.secondwind.ui
 
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.AssistChip
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -19,35 +25,63 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import org.yb.secondwind.Link
 import org.yb.secondwind.Problem
 import org.yb.secondwind.UiState
 
-/** The device's casing colour; used only for the connected dot so it reads against any Material scheme. */
-val YellowbrickYellow = Color(0xFFFFD500)
-
-/** `● Connected · 46 cr` / `◌ Connecting…` / `○ Not connected` / `⚠ Bluetooth off` / `○ No device`. */
+/**
+ * Icon-only connection toggle for the top bar. Filled disc when connected (tap: disconnect),
+ * spinner while connecting (tap: cancel), outline when idle (tap: connect). When something
+ * blocks connecting — Bluetooth off, no device, no credentials — it shows a badge and tapping
+ * opens the device sheet instead, where the problem is explained. Long-press always opens the sheet.
+ */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun StatusChip(state: UiState, bluetoothOn: Boolean, onClick: () -> Unit) {
-    val d = state.data
-    val (dot, label, colour) = when {
-        state.link == Link.CONNECTED -> Triple("●", "Connected" + (d.credit?.let { " · ~$it cr" } ?: ""), YellowbrickYellow)
-        state.link == Link.CONNECTING -> Triple("◌", "Connecting…", MaterialTheme.colorScheme.onSurfaceVariant)
-        !bluetoothOn -> Triple("⚠", "Bluetooth off", MaterialTheme.colorScheme.error)
-        d.settings.deviceAddress.isEmpty() -> Triple("○", "No device", MaterialTheme.colorScheme.onSurfaceVariant)
-        else -> Triple("○", "Not connected", MaterialTheme.colorScheme.onSurfaceVariant)
+fun ConnectPill(state: UiState, bluetoothOn: Boolean, onConnect: () -> Unit, onDisconnect: () -> Unit, onOpenSheet: () -> Unit) {
+    val s = state.data.settings
+    val blocked = state.link == Link.DISCONNECTED && (!bluetoothOn || s.deviceAddress.isEmpty() || !s.credentialsValid)
+    val connected = state.link == Link.CONNECTED
+    val onTap = when {
+        connected || state.link == Link.CONNECTING -> onDisconnect
+        blocked -> onOpenSheet
+        else -> onConnect
     }
-    AssistChip(
-        onClick = onClick,
-        label = { Text(label) },
-        leadingIcon = {
-            if (state.link == Link.CONNECTING) CircularProgressIndicator(Modifier.size(14.dp), strokeWidth = 2.dp)
-            else Text(dot, color = colour, fontWeight = FontWeight.Bold)
-        },
-    )
+    val label = when {
+        connected -> "Connected — tap to disconnect"
+        state.link == Link.CONNECTING -> "Connecting — tap to cancel"
+        blocked -> "Cannot connect — tap for details"
+        else -> "Not connected — tap to connect"
+    }
+    Box(
+        Modifier
+            .padding(horizontal = 4.dp)
+            .size(40.dp)
+            .clip(CircleShape)
+            .background(if (connected) OnYellow else Color.Transparent)
+            .combinedClickable(onClick = onTap, onLongClick = onOpenSheet, role = Role.Button)
+            .semantics { contentDescription = label },
+        contentAlignment = Alignment.Center,
+    ) {
+        val bg = if (isSystemInDarkTheme()) YellowbrickAmber else YellowbrickYellow
+        Icon(YbIcon, null, Modifier.size(24.dp), tint = if (connected) bg else OnYellow.copy(alpha = if (state.link == Link.CONNECTING) 0.5f else 1f))
+        if (state.link == Link.CONNECTING) CircularProgressIndicator(Modifier.size(34.dp), strokeWidth = 2.dp, color = OnYellow)
+        if (blocked) Box(
+            Modifier.align(Alignment.TopEnd).padding(2.dp).size(14.dp).clip(CircleShape).background(MaterialTheme.colorScheme.error),
+            contentAlignment = Alignment.Center,
+        ) { Text("!", color = MaterialTheme.colorScheme.onError, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) }
+    }
+}
+
+@Composable
+fun SettingsPill(onClick: () -> Unit) {
+    IconButton(onClick = onClick) { Icon(Icons.Default.Settings, "Device and settings") }
 }
 
 class ProblemCopy(val text: String, val action: String?, val run: () -> Unit)

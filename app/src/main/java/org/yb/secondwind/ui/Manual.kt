@@ -125,8 +125,9 @@ fun ManualScreen(onBack: () -> Unit) {
     Scaffold(topBar = {
         TopAppBar(
             title = { Text("Device guide") },
+            colors = ybTopBarColors(),
             navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } },
-            actions = { TextButton(onClick = { ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(MANUAL_URL))) }) { Text("Full manual (PDF)") } },
+            actions = { TextButton(onClick = { ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(MANUAL_URL))) }) { Text("Full manual (PDF)", color = OnYellow) } },
         )
     }) { pad ->
         Column(Modifier.padding(pad).fillMaxSize().verticalScroll(rememberScrollState())) {

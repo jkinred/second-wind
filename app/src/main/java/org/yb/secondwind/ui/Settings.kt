@@ -61,7 +61,7 @@ import org.yb.secondwind.proto.Mode
 @Composable
 fun SettingsScreen(
     vm: Messenger, settings: Settings, contacts: List<Contact>, granted: Boolean,
-    onBack: () -> Unit, onTroubleshooting: () -> Unit, onAbout: () -> Unit, onManual: () -> Unit,
+    onBack: () -> Unit, onTroubleshooting: () -> Unit, onAbout: () -> Unit,
 ) {
     var keyword by remember { mutableStateOf(settings.keyword) }
     var password by remember { mutableStateOf(settings.password) }
@@ -88,6 +88,7 @@ fun SettingsScreen(
     Scaffold(topBar = {
         TopAppBar(
             title = { Text("Settings") },
+            colors = ybTopBarColors(),
             navigationIcon = { IconButton(onClick = { save(); onBack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } },
         )
     }) { pad ->
@@ -146,7 +147,6 @@ fun SettingsScreen(
             HorizontalDivider()
 
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                TextButton(onClick = { save(); onManual() }) { Text("Device guide ›") }
                 TextButton(onClick = { save(); onTroubleshooting() }) { Text("Troubleshooting ›") }
                 TextButton(onClick = { save(); onAbout() }) { Text("About ›") }
             }
@@ -187,8 +187,9 @@ fun TroubleshootingScreen(vm: Messenger, log: List<String>, deviceName: String, 
     Scaffold(topBar = {
         TopAppBar(
             title = { Text("Troubleshooting") },
+            colors = ybTopBarColors(),
             navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } },
-            actions = { TextButton(onClick = { clipboard.setText(AnnotatedString(vm.exportLog())) }) { Text("Copy log") } },
+            actions = { TextButton(onClick = { clipboard.setText(AnnotatedString(vm.exportLog())) }) { Text("Copy log", color = OnYellow) } },
         )
     }) { pad ->
         Column(Modifier.padding(pad).fillMaxSize()) {
@@ -232,6 +233,7 @@ fun AboutScreen(version: String, onBack: () -> Unit) {
     Scaffold(topBar = {
         TopAppBar(
             title = { Text("About") },
+            colors = ybTopBarColors(),
             navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } },
         )
     }) { pad ->

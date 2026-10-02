@@ -38,6 +38,7 @@ fun DeviceSheet(
     onPull: () -> Unit,
     onSettings: () -> Unit,
     onTroubleshooting: () -> Unit,
+    onGuide: () -> Unit,
 ) {
     val d = state.data
     val s = d.settings
@@ -98,6 +99,7 @@ fun DeviceSheet(
                 if (state.pulling) { CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp); Spacer(Modifier.width(8.dp)) }
                 Text(if (s.mode.name == "HOTSPOT") "Check satellite mailbox now (costs credits)" else "Pull messages now")
             }
+            OutlinedButton(onClick = onGuide, modifier = Modifier.fillMaxWidth()) { Text("Device guide") }
             Row(Modifier.fillMaxWidth().padding(bottom = 16.dp), horizontalArrangement = Arrangement.SpaceBetween) {
                 TextButton(onClick = onSettings) { Text("Settings ›") }
                 TextButton(onClick = onTroubleshooting) { Text("Troubleshooting ›") }
