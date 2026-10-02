@@ -41,6 +41,8 @@ data class Message(
     val inParts: Map<Int, String> = emptyMap(),
     val totalParts: Int = 1,
     val unread: Boolean = false,
+    /** IN only: credit balance the device reported alongside this message, if any. */
+    val creditAfter: Int? = null,
 ) {
     val body: String
         get() = when (direction) {
@@ -63,23 +65,33 @@ data class Message(
 
     val acceptedParts: Int get() = outParts.count { it.acceptedAt != null }
 
-    /** Address set that identifies the conversation this message belongs to. */
-    val threadKey: String
+    /** Raw normalised addresses on the other end: sender for IN, recipients for OUT. */
+    val counterparts: List<String>
         get() = when (direction) {
-            Direction.IN -> Threads.key(listOf(from), group = false)
-            Direction.OUT -> Threads.key(recipients, group)
+            Direction.IN -> listOf(Payload.normaliseRecipient(from)).filter { it.isNotEmpty() }
+            Direction.OUT -> recipients
         }
+
+    /** Conversation identity: counterparts resolved through [contacts] so one person's phone and e-mail share a thread. */
+    fun threadKey(contacts: List<Contact>): String = Threads.key(counterparts, direction == Direction.OUT && group, contacts)
 }
 
+/**
+ * A person. [address] is the primary address and the stable identity used in thread keys;
+ * [aliases] are other addresses (phone, e-mail) the same person uses, merged by the user.
+ */
 @Serializable
 data class Contact(
     val address: String,
     val name: String = "",
     /** Explicitly starred by the user (vs. merely recent). */
     val pinned: Boolean = false,
+    val aliases: List<String> = emptyList(),
 ) {
     val isGroup get() = address == Payload.GROUP
     val display get() = name.ifBlank { if (isGroup) "My group" else address }
+    val addresses get() = listOf(address) + aliases
+    fun owns(a: String) = a == address || a in aliases
 }
 
 @Serializable

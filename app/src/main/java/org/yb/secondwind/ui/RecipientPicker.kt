@@ -111,7 +111,7 @@ fun RecipientPicker(
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     if (group) InputChip(selected = true, onClick = { group = false }, label = { Text("My group") }, trailingIcon = { Text("×") })
                     chosen.forEach { a ->
-                        val name = favourites.firstOrNull { it.address == a }?.name?.ifBlank { null }
+                        val name = favourites.firstOrNull { it.owns(a) }?.name?.ifBlank { null }
                         InputChip(selected = true, onClick = { chosen -= a }, label = { Text(name ?: a) }, trailingIcon = { Text("×") })
                     }
                 }
@@ -139,8 +139,17 @@ fun RecipientPicker(
                     )
                 }
                 items(favourites, key = { "f" + it.address }) { c ->
-                    ContactRow(c, selected = c.address in chosen, onClick = { if (c.address in chosen) chosen -= c.address else add(c.address) },
+                    val picked = c.addresses.firstOrNull { it in chosen }
+                    ContactRow(c, selected = picked != null, onClick = { if (picked != null) chosen -= picked else add(c.address) },
                         star = true, onStar = { onUnpin(c.address) })
+                    // A merged contact can be reached two ways; offer the alternates explicitly.
+                    if (c.aliases.isNotEmpty()) Row(Modifier.padding(start = 56.dp, bottom = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        c.addresses.forEach { a ->
+                            InputChip(selected = a in chosen, onClick = { if (a in chosen) chosen -= a else { c.addresses.forEach { chosen -= it }; add(a) } },
+                                label = { Text(channelName(a), style = MaterialTheme.typography.labelSmall) },
+                                leadingIcon = { Icon(channelIcon(a), null, Modifier.width(14.dp)) })
+                        }
+                    }
                 }
                 if (recents.isNotEmpty()) item { SectionHeader("Recent") }
                 items(recents, key = { "r" + it.address }) { c ->
@@ -178,7 +187,7 @@ private fun ContactRow(c: Contact, selected: Boolean, onClick: () -> Unit, star:
     ListItem(
         modifier = Modifier.clickable(onClick = onClick),
         headlineContent = { Text(c.display) },
-        supportingContent = if (c.name.isNotBlank()) ({ Text(c.address) }) else null,
+        supportingContent = if (c.name.isNotBlank() || c.aliases.isNotEmpty()) ({ Text(c.addresses.joinToString(" · ")) }) else null,
         leadingContent = { Text(if (selected) "✓" else " ", Modifier.width(16.dp)) },
         trailingContent = {
             IconButton(onClick = onStar) {

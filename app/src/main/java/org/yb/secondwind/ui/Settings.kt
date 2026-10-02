@@ -43,6 +43,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -58,7 +59,10 @@ import org.yb.secondwind.proto.Mode
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(vm: Messenger, settings: Settings, contacts: List<Contact>, granted: Boolean, onBack: () -> Unit, onTroubleshooting: () -> Unit, onAbout: () -> Unit) {
+fun SettingsScreen(
+    vm: Messenger, settings: Settings, contacts: List<Contact>, granted: Boolean,
+    onBack: () -> Unit, onTroubleshooting: () -> Unit, onAbout: () -> Unit, onManual: () -> Unit,
+) {
     var keyword by remember { mutableStateOf(settings.keyword) }
     var password by remember { mutableStateOf(settings.password) }
     var mode by remember { mutableStateOf(settings.mode) }
@@ -126,19 +130,23 @@ fun SettingsScreen(vm: Messenger, settings: Settings, contacts: List<Contact>, g
             )
             HorizontalDivider()
 
-            Text("Favourites", style = MaterialTheme.typography.titleMedium)
+            Text("People", style = MaterialTheme.typography.titleMedium)
             if (contacts.isEmpty()) Text("None yet. Star a recent recipient or pick from phone contacts when writing a message.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             contacts.forEach { c ->
                 ListItem(
                     modifier = Modifier.clickable { renaming = c },
-                    headlineContent = { Text(c.display) },
-                    supportingContent = if (c.name.isNotBlank()) ({ Text(c.address) }) else null,
-                    trailingContent = { TextButton(onClick = { vm.unpinContact(c.address) }) { Text("Remove") } },
+                    headlineContent = { Text(c.display + if (c.pinned) " ★" else "") },
+                    supportingContent = if (c.name.isNotBlank() || c.aliases.isNotEmpty()) ({ Text(c.addresses.joinToString(" · ")) }) else null,
+                    trailingContent = {
+                        if (c.pinned) TextButton(onClick = { vm.unpinContact(c.address) }) { Text("Unstar") }
+                        else TextButton(onClick = { vm.pinContact(c.address) }) { Text("Star") }
+                    },
                 )
             }
             HorizontalDivider()
 
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                TextButton(onClick = { save(); onManual() }) { Text("Device guide ›") }
                 TextButton(onClick = { save(); onTroubleshooting() }) { Text("Troubleshooting ›") }
                 TextButton(onClick = { save(); onAbout() }) { Text("About ›") }
             }
@@ -149,9 +157,23 @@ fun SettingsScreen(vm: Messenger, settings: Settings, contacts: List<Contact>, g
         var name by remember(c) { mutableStateOf(c.name) }
         AlertDialog(
             onDismissRequest = { renaming = null },
-            title = { Text("Rename favourite") },
-            text = { OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Name") }, singleLine = true) },
-            confirmButton = { TextButton(onClick = { vm.pinContact(c.address, name.trim()); renaming = null }) { Text("Save") } },
+            title = { Text(if (c.aliases.isEmpty()) "Rename" else "Edit person") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Name") }, singleLine = true)
+                    if (c.aliases.isNotEmpty()) {
+                        Text("Addresses", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(c.address, style = MaterialTheme.typography.bodySmall)
+                        c.aliases.forEach { a ->
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                Text(a, style = MaterialTheme.typography.bodySmall)
+                                TextButton(onClick = { vm.unlinkAlias(a); renaming = null }) { Text("Unlink") }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { vm.renameContact(c.address, name.trim()); renaming = null }) { Text("Save") } },
             dismissButton = { TextButton(onClick = { renaming = null }) { Text("Cancel") } },
         )
     }
@@ -178,9 +200,13 @@ fun TroubleshootingScreen(vm: Messenger, log: List<String>, deviceName: String, 
                 OutlinedButton(onClick = { confirmForget = true }, enabled = deviceName.isNotEmpty()) { Text("Forget pairing and reconnect") }
             }
             HorizontalDivider()
-            Text("Log", Modifier.padding(start = 16.dp, top = 8.dp), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+            var newestFirst by rememberSaveable { mutableStateOf(true) }
+            Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text("Log", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                TextButton(onClick = { newestFirst = !newestFirst }) { Text(if (newestFirst) "Newest first ↓" else "Oldest first ↑") }
+            }
             LazyColumn(Modifier.weight(1f)) {
-                items(log) { Text(it, Modifier.padding(horizontal = 16.dp, vertical = 1.dp), style = MaterialTheme.typography.bodySmall, fontFamily = FontFamily.Monospace) }
+                items(if (newestFirst) log.asReversed() else log) { Text(it, Modifier.padding(horizontal = 16.dp, vertical = 1.dp), style = MaterialTheme.typography.bodySmall, fontFamily = FontFamily.Monospace) }
             }
         }
     }

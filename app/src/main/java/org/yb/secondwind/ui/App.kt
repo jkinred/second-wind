@@ -23,14 +23,16 @@ import org.yb.secondwind.Messenger
 import org.yb.secondwind.data.Direction
 import org.yb.secondwind.data.OutState
 import org.yb.secondwind.data.Threads
+import org.yb.secondwind.proto.Payload
 
 private sealed interface Screen {
     data object Home : Screen
-    class Thread(val addresses: List<String>, val group: Boolean) : Screen
+    class Thread(val identities: List<String>, val group: Boolean, val preferred: List<String> = emptyList()) : Screen
     data object New : Screen
     data object Settings : Screen
     data object Troubleshooting : Screen
     data object About : Screen
+    data object Manual : Screen
 }
 
 private val BT_PERMS = arrayOf(Manifest.permission.BLUETOOTH_CONNECT, Manifest.permission.BLUETOOTH_SCAN)
@@ -69,7 +71,8 @@ fun App(vm: Messenger, version: String) {
     }
 
     val connect = { if (granted) vm.connect(hasPermission = true) else requestPerms.launch(BT_PERMS) }
-    val threads = remember(state.data.messages) { Threads.build(state.data.messages) }
+    val contacts = state.data.contacts
+    val threads = remember(state.data.messages, contacts) { Threads.build(state.data.messages, contacts) }
     val queued = state.data.messages.count { it.direction == Direction.OUT && it.outState != OutState.ACCEPTED }
     val problem = state.problem?.let {
         problemCopy(
@@ -88,33 +91,40 @@ fun App(vm: Messenger, version: String) {
         Screen.Home -> HomeScreen(
             state = state, threads = threads, bluetoothOn = bluetoothOn, problem = problem, queued = queued,
             onDismissProblem = vm::dismissProblem, onConnect = connect, onStatus = { sheet = true },
-            onOpen = { t -> vm.markRead(t.key); screen = Screen.Thread(t.addresses, t.group) },
+            onOpen = { t -> vm.markRead(t.key); screen = Screen.Thread(t.identities, t.group) },
             onNew = { screen = Screen.New },
         )
         is Screen.Thread -> {
-            val key = Threads.key(s.addresses, s.group)
-            val msgs = remember(threads, key) { threads.firstOrNull { it.key == key }?.messages ?: emptyList() }
-            LaunchedEffect(msgs.size) { vm.markRead(key) }
+            val key = Threads.key(s.identities, s.group, contacts)
+            val thread = remember(threads, key) { threads.firstOrNull { it.key == key } }
+            val others = remember(threads, key) { threads.filter { it.key != key && !it.group && it.identities.size == 1 } }
+            LaunchedEffect(thread?.messages?.size) { vm.markRead(key) }
             ThreadScreen(
-                state = state, addresses = s.addresses, group = s.group, messages = msgs, bluetoothOn = bluetoothOn,
+                state = state, identities = s.identities, preferred = s.preferred, group = s.group, thread = thread, otherThreads = others,
+                bluetoothOn = bluetoothOn,
                 onBack = { screen = Screen.Home }, onStatus = { sheet = true },
-                onQueue = { text -> vm.queue(s.addresses, text, s.group); if (state.link == Link.DISCONNECTED && state.problem == null) connect() },
+                onQueue = { addrs, text -> vm.queue(addrs, text, s.group); if (state.link == Link.DISCONNECTED && state.problem == null) connect() },
                 onDelete = { vm.delete(it.id) },
+                onMerge = { absorb -> vm.mergeContacts(keep = s.identities.single(), absorb = absorb) },
             )
         }
         Screen.New -> RecipientPicker(
-            favourites = state.data.contacts.sortedBy { it.display.lowercase() },
-            recents = remember(state.data.messages, state.data.contacts) { Threads.recents(state.data.messages, state.data.contacts) },
+            favourites = contacts.filter { it.pinned }.sortedBy { it.display.lowercase() },
+            recents = remember(state.data.messages, contacts) { Threads.recents(state.data.messages, contacts) },
             onBack = { screen = Screen.Home },
             onPin = vm::pinContact, onUnpin = vm::unpinContact,
-            onNext = { addrs, group -> screen = Screen.Thread(addrs, group) },
+            onNext = { addrs, group ->
+                screen = Screen.Thread(addrs.map { Threads.resolve(it, contacts) }.distinct(), group, preferred = addrs.map(Payload::normaliseRecipient))
+            },
         )
         Screen.Settings -> SettingsScreen(
-            vm, state.data.settings, state.data.contacts.sortedBy { it.display.lowercase() }, granted,
+            vm, state.data.settings, contacts.sortedBy { it.display.lowercase() }, granted,
             onBack = { screen = Screen.Home }, onTroubleshooting = { screen = Screen.Troubleshooting }, onAbout = { screen = Screen.About },
+            onManual = { screen = Screen.Manual },
         )
         Screen.Troubleshooting -> TroubleshootingScreen(vm, state.log, state.data.settings.deviceName, onBack = { screen = Screen.Settings })
         Screen.About -> AboutScreen(version, onBack = { screen = Screen.Settings })
+        Screen.Manual -> ManualScreen(onBack = { screen = Screen.Settings })
     }
 
     if (sheet) DeviceSheet(

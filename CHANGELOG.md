@@ -2,6 +2,20 @@
 
 All notable changes to YB Second Wind. Format follows Keep a Changelog; versions follow SemVer.
 
+## [0.1.1] — 2026-10-03
+
+### Added
+- Merge conversations: a person's phone number and e-mail address can be linked (⋮ → Merge in a thread), so replies over either channel land in one thread. Replies default to the channel the other side last used; a "Send via" chip switches. Unlink from Settings › People.
+- Long-press a message for Message info (addresses with channel, queued/sent/accepted times, part ids, credit estimate or balance after receipt), Copy text, Delete.
+- Channel glyph (phone / e-mail) under each message.
+- Device guide: condensed Yellowbrick MkII reference written for use with the app, with a link to the manufacturer's PDF.
+- Log records queued and received messages (addresses, length, parts); newest first with an order toggle.
+
+### Changed
+- Title shortened to "Second Wind" so the status chip no longer overlaps it.
+- Connected dot is Yellowbrick yellow.
+- Inbound messages record the credit balance the device reported with them.
+
 ## [0.1.0] — 2026-10-02
 
 First release. Clean rewrite from the protocol specification in `docs/PROTOCOL.md`.

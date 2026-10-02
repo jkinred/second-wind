@@ -53,7 +53,7 @@ fun HomeScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("YB Second Wind") },
+                title = { Text("Second Wind") },
                 actions = { StatusChip(state, bluetoothOn, onStatus); Spacer(Modifier.width(8.dp)) },
             )
         },

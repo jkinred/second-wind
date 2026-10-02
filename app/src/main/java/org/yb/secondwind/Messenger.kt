@@ -23,6 +23,7 @@ import org.yb.secondwind.data.Direction
 import org.yb.secondwind.data.Ids
 import org.yb.secondwind.data.Inbox
 import org.yb.secondwind.data.OutState
+import org.yb.secondwind.data.Threads
 import org.yb.secondwind.data.Outbox
 import org.yb.secondwind.data.Settings
 import org.yb.secondwind.data.Store
@@ -103,12 +104,24 @@ class Messenger(app: Application) : AndroidViewModel(app) {
 
     fun pinContact(address: String, name: String = "") = update {
         val a = Payload.normaliseRecipient(address)
-        val existing = contacts.firstOrNull { it.address == a }
-        val c = Contact(a, name.ifBlank { existing?.name ?: "" }, pinned = true)
-        copy(contacts = contacts.filter { it.address != a } + c)
+        val existing = contacts.firstOrNull { it.owns(a) }
+        val c = (existing ?: Contact(a)).copy(name = name.ifBlank { existing?.name ?: "" }, pinned = true)
+        copy(contacts = contacts.filter { it !== existing } + c)
     }
 
-    fun unpinContact(address: String) = update { copy(contacts = contacts.filter { it.address != address }) }
+    /** Un-stars; a contact that still links several addresses is kept (unpinned) so threads stay merged. */
+    fun unpinContact(address: String) = update {
+        copy(contacts = contacts.mapNotNull { if (it.address != address) it else if (it.aliases.isEmpty()) null else it.copy(pinned = false) })
+    }
+
+    fun mergeContacts(keep: String, absorb: String) {
+        update { copy(contacts = Threads.merge(contacts, keep, absorb)) }
+        log("merged $absorb into $keep")
+    }
+
+    fun unlinkAlias(alias: String) = update { copy(contacts = Threads.unlink(contacts, alias)) }
+
+    fun renameContact(address: String, name: String) = update { copy(contacts = contacts.map { if (it.address == address) it.copy(name = name) else it }) }
 
     fun dismissProblem() = _state.update { it.copy(problem = null) }
 
@@ -208,6 +221,7 @@ class Messenger(app: Application) : AndroidViewModel(app) {
     fun queue(recipients: List<String>, text: String, group: Boolean) {
         val now = System.currentTimeMillis()
         update { copy(messages = messages + Outbox.newMessage("out-$now", recipients, text, group, messages, now)) }
+        log("queued out-$now to ${(recipients + if (group) listOf("group") else emptyList()).joinToString(",")} (${text.length} chars)")
         if (_state.value.link == Link.CONNECTED) viewModelScope.launch { flushOutbox() }
     }
 
@@ -215,8 +229,8 @@ class Messenger(app: Application) : AndroidViewModel(app) {
     fun delete(id: String) = update { copy(messages = messages.filter { it.id != id }) }
 
     fun markRead(threadKey: String) = update {
-        if (messages.none { it.unread && it.threadKey == threadKey }) this
-        else copy(messages = messages.map { if (it.threadKey == threadKey && it.unread) it.copy(unread = false) else it })
+        if (messages.none { it.unread && it.threadKey(contacts) == threadKey }) this
+        else copy(messages = messages.map { if (it.unread && it.threadKey(contacts) == threadKey) it.copy(unread = false) else it })
     }
 
     private suspend fun flushOutbox() = flushLock.withLock {
@@ -316,15 +330,18 @@ class Messenger(app: Application) : AndroidViewModel(app) {
             }
             is Inbound.Text -> {
                 tx(Outbound.ack(keyword, m.ybId))
+                val before = data.messages
                 update {
                     copy(
-                        messages = Inbox.receive(messages, m.ybId, m.totalParts, m.partNo, m.threadId, m.sender, m.text, now),
+                        messages = Inbox.receive(messages, m.ybId, m.totalParts, m.partNo, m.threadId, m.sender, m.text, m.credit, now),
                         credit = m.credit ?: credit,
                         creditAt = if (m.credit != null) now else creditAt,
                         lastPullAt = now,
                     )
                 }
                 log("< TEXT_IN ybId=${m.ybId} part ${m.partNo}/${m.totalParts} from=${m.sender} credit=${m.credit}")
+                data.messages.firstOrNull { it.direction == Direction.IN && it.complete && before.none { b -> b.id == it.id && b.complete } }
+                    ?.let { log("received ${it.id} from ${it.from} (${it.body.length} chars, ${it.totalParts} part${if (it.totalParts == 1) "" else "s"})") }
                 // The device hands over one message per REQUEST; ask again without waiting for the 30 s tick.
                 delay(500)
                 tx(Outbound.request(keyword))

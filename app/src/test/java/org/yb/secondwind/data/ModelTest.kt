@@ -53,22 +53,23 @@ class OutboxTest {
 
 class InboxTest {
     @Test fun reassemblesOutOfOrderParts() {
-        var ms = Inbox.receive(emptyList(), 10, 2, 2, 7, "", "world", 1)
+        var ms = Inbox.receive(emptyList(), 10, 2, 2, 7, "", "world", null, 1)
         assertEquals(1, ms.size)
         assertTrue(!ms[0].complete)
-        ms = Inbox.receive(ms, 11, 2, 1, 7, "bob@x.com", "hello ", 2)
+        ms = Inbox.receive(ms, 11, 2, 1, 7, "bob@x.com", "hello ", 42, 2)
         val m = ms.single()
         assertTrue(m.complete)
         assertEquals("bob@x.com", m.from)
         assertEquals("hello world", m.body)
         assertTrue(m.unread)
+        assertEquals(42, m.creditAfter)
     }
 
     @Test fun completedThreadIdDoesNotAbsorbNewMessage() {
-        var ms = Inbox.receive(emptyList(), 1, 1, 1, 0, "a@x", "one", 1)
-        ms = Inbox.receive(ms, 2, 2, 1, 3, "b@x", "two-", 2)
-        ms = Inbox.receive(ms, 3, 2, 2, 3, "", "part", 3)
-        ms = Inbox.receive(ms, 4, 2, 1, 3, "c@x", "reused thread id", 4)
+        var ms = Inbox.receive(emptyList(), 1, 1, 1, 0, "a@x", "one", null, 1)
+        ms = Inbox.receive(ms, 2, 2, 1, 3, "b@x", "two-", null, 2)
+        ms = Inbox.receive(ms, 3, 2, 2, 3, "", "part", null, 3)
+        ms = Inbox.receive(ms, 4, 2, 1, 3, "c@x", "reused thread id", null, 4)
         assertEquals(3, ms.size)
         assertEquals("two-part", ms[1].body)
         assertEquals("c@x", ms[2].from)
@@ -78,9 +79,9 @@ class InboxTest {
 class ThreadsTest {
     @Test fun groupsByCounterpartRegardlessOfDirection() {
         val out = Outbox.newMessage("o", listOf("Bob@X.com"), "hi", false, emptyList(), 1)
-        val inb = Inbox.receive(emptyList(), 1, 1, 1, 0, "bob@x.com", "yo", 2).single()
+        val inb = Inbox.receive(emptyList(), 1, 1, 1, 0, "bob@x.com", "yo", null, 2).single()
         val other = Outbox.newMessage("g", listOf("bob@x.com"), "all", true, emptyList(), 3)
-        val threads = Threads.build(listOf(out, inb, other))
+        val threads = Threads.build(listOf(out, inb, other), emptyList())
         assertEquals(2, threads.size)
         assertEquals("bob@x.com,g", threads[0].key) // newest first
         assertEquals(listOf("o", inb.id), threads[1].messages.map { it.id })
@@ -91,13 +92,33 @@ class ThreadsTest {
     @Test fun recentsExcludeContactsAndDedupe() {
         val a = Outbox.newMessage("1", listOf("a@x"), "t", false, emptyList(), 1)
         val b = Outbox.newMessage("2", listOf("b@x", "a@x"), "t", false, emptyList(), 2)
-        val c = Inbox.receive(emptyList(), 1, 1, 1, 0, "c@x", "t", 3).single()
+        val c = Inbox.receive(emptyList(), 1, 1, 1, 0, "c@x", "t", null, 3).single()
         val r = Threads.recents(listOf(a, b, c), listOf(Contact("b@x", "Bee", pinned = true)))
         assertEquals(listOf("c@x", "a@x"), r.map { it.address })
     }
 
+    @Test fun mergedContactCollapsesPhoneAndEmailThreadsAndRepliesOnLastChannel() {
+        val toPhone = Outbox.newMessage("1", listOf("+61400000000"), "hi", false, emptyList(), 1)
+        val fromEmail = Inbox.receive(emptyList(), 1, 1, 1, 0, "sarah@x.com", "hello", null, 2).single()
+        assertEquals(2, Threads.build(listOf(toPhone, fromEmail), emptyList()).size)
+
+        val contacts = Threads.merge(listOf(Contact("+61400000000", "Sarah", pinned = true)), keep = "+61400000000", absorb = "sarah@x.com")
+        val merged = contacts.single()
+        assertEquals(listOf("+61400000000", "sarah@x.com"), merged.addresses)
+        assertTrue(merged.pinned)
+
+        val t = Threads.build(listOf(toPhone, fromEmail), contacts).single()
+        assertEquals(listOf("+61400000000"), t.identities)
+        assertEquals("Sarah", t.title(contacts))
+        assertEquals("sarah@x.com", t.lastAddressFor("+61400000000", contacts)) // last exchange was e-mail
+        assertTrue(Threads.recents(listOf(toPhone, fromEmail), contacts).isEmpty())
+
+        val unlinked = Threads.unlink(contacts, "sarah@x.com")
+        assertEquals(2, Threads.build(listOf(toPhone, fromEmail), unlinked).size)
+    }
+
     @Test fun titleResolvesContactNames() {
-        val t = Threads.build(listOf(Outbox.newMessage("1", listOf("a@x"), "t", true, emptyList(), 1))).single()
+        val t = Threads.build(listOf(Outbox.newMessage("1", listOf("a@x"), "t", true, emptyList(), 1)), emptyList()).single()
         assertEquals("Alice, My group", t.title(listOf(Contact("a@x", "Alice"))))
     }
 }

@@ -19,18 +19,22 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import org.yb.secondwind.Link
 import org.yb.secondwind.Problem
 import org.yb.secondwind.UiState
 
+/** The device's casing colour; used only for the connected dot so it reads against any Material scheme. */
+val YellowbrickYellow = Color(0xFFFFD500)
+
 /** `● Connected · 46 cr` / `◌ Connecting…` / `○ Not connected` / `⚠ Bluetooth off` / `○ No device`. */
 @Composable
 fun StatusChip(state: UiState, bluetoothOn: Boolean, onClick: () -> Unit) {
     val d = state.data
     val (dot, label, colour) = when {
-        state.link == Link.CONNECTED -> Triple("●", "Connected" + (d.credit?.let { " · ~$it cr" } ?: ""), MaterialTheme.colorScheme.primary)
+        state.link == Link.CONNECTED -> Triple("●", "Connected" + (d.credit?.let { " · ~$it cr" } ?: ""), YellowbrickYellow)
         state.link == Link.CONNECTING -> Triple("◌", "Connecting…", MaterialTheme.colorScheme.onSurfaceVariant)
         !bluetoothOn -> Triple("⚠", "Bluetooth off", MaterialTheme.colorScheme.error)
         d.settings.deviceAddress.isEmpty() -> Triple("○", "No device", MaterialTheme.colorScheme.onSurfaceVariant)

@@ -22,10 +22,13 @@ vendor app no longer installs.
 
 ## What it does
 
-- Conversations per contact, with each message's state shown.
+- Conversations per person, with each message's state shown. A person's phone
+  number and e-mail can be merged into one conversation.
+- Message info on long-press: addresses, channel, timings, part ids, credits.
 - Device panel: connection, credits with their age, firmware version, configured
   tracking and inbox-check intervals, storage warning, last connection.
 - Favourites and recent recipients, plus pick-from-phone-contacts.
+- Device guide: condensed MkII reference for use alongside the app.
 - Automatic recovery when another phone has paired with the Yellowbrick
   since you last connected.
 
