@@ -1,6 +1,14 @@
 # Changelog
 
-All notable changes to YB Second Wind. Format follows Keep a Changelog; versions follow SemVer.
+All notable changes to Second Wind. Format follows Keep a Changelog; versions follow SemVer.
+
+## [0.1.4] — 2026-10-03
+
+### Added
+- Hidden screenshot mode: tap the version line on About seven times to reveal "Load demo conversations" (ten fictional threads) and "Restore my messages". Real messages are parked in `state.real.json` while the demo is loaded; settings are untouched.
+
+### Changed
+- App renamed from "YB Second Wind" to "Second Wind".
 
 ## [0.1.3] — 2026-10-03
 

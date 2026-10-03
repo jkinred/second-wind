@@ -6,6 +6,7 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -40,6 +41,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -229,7 +231,9 @@ fun TroubleshootingScreen(vm: Messenger, log: List<String>, deviceName: String, 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AboutScreen(version: String, onBack: () -> Unit) {
+fun AboutScreen(vm: Messenger, version: String, demo: Boolean, onBack: () -> Unit) {
+    var taps by remember { mutableIntStateOf(0) }
+    var revealed by rememberSaveable { mutableStateOf(demo) }
     Scaffold(topBar = {
         TopAppBar(
             title = { Text("About") },
@@ -238,7 +242,10 @@ fun AboutScreen(version: String, onBack: () -> Unit) {
         )
     }) { pad ->
         Column(Modifier.padding(pad).padding(16.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text("YB Second Wind $version", style = MaterialTheme.typography.titleLarge)
+            Text(
+                "Second Wind $version", style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.clickable(indication = null, interactionSource = remember { MutableInteractionSource() }) { if (++taps >= 7) revealed = true },
+            )
             Text("Android replacement for the discontinued YB Messenger app, for Yellowbrick v3 / MkII satellite trackers.")
             Text(
                 "Not affiliated with, endorsed by or supported by YB Tracking Ltd. \"Yellowbrick\" and \"YB\" are their marks, used here only to identify the device this app talks to. Use of a third-party app with your airtime account is between you and your airtime provider.",
@@ -249,6 +256,17 @@ fun AboutScreen(version: String, onBack: () -> Unit) {
                 style = MaterialTheme.typography.bodyMedium,
             )
             Text("Licensed under the Apache License 2.0. Source and protocol documentation are published with the app.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (revealed) {
+                HorizontalDivider()
+                Text("Screenshots", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    if (demo) "Fictional conversations are loaded. Your real messages are parked and come back when you restore; anything received meanwhile is dropped."
+                    else "Replaces your conversations with ten fictional ones for screenshots. Settings are kept; your real messages are parked until you restore them.",
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                if (demo) OutlinedButton(onClick = vm::restoreReal, modifier = Modifier.fillMaxWidth()) { Text("Restore my messages") }
+                else OutlinedButton(onClick = vm::loadDemo, modifier = Modifier.fillMaxWidth()) { Text("Load demo conversations") }
+            }
             Spacer(Modifier.width(1.dp))
         }
     }

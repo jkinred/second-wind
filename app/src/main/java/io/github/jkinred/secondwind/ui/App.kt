@@ -122,7 +122,7 @@ fun App(vm: Messenger, version: String) {
             onBack = { screen = Screen.Home }, onTroubleshooting = { screen = Screen.Troubleshooting }, onAbout = { screen = Screen.About },
         )
         Screen.Troubleshooting -> TroubleshootingScreen(vm, state.log, state.data.settings.deviceName, onBack = { screen = Screen.Settings })
-        Screen.About -> AboutScreen(version, onBack = { screen = Screen.Settings })
+        Screen.About -> AboutScreen(vm, version, state.demo, onBack = { screen = Screen.Settings })
         Screen.Manual -> ManualScreen(onBack = { screen = Screen.Home })
     }
 

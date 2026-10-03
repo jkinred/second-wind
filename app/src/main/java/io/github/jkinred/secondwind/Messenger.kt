@@ -19,6 +19,7 @@ import io.github.jkinred.secondwind.bt.DeviceLink
 import io.github.jkinred.secondwind.data.AppData
 import io.github.jkinred.secondwind.data.Contact
 import io.github.jkinred.secondwind.data.DeviceInfo
+import io.github.jkinred.secondwind.data.Demo
 import io.github.jkinred.secondwind.data.Direction
 import io.github.jkinred.secondwind.data.Ids
 import io.github.jkinred.secondwind.data.Inbox
@@ -63,13 +64,15 @@ data class UiState(
     /** True while a REQUEST/mailbox check is in flight on user demand. */
     val pulling: Boolean = false,
     val log: List<String> = emptyList(),
+    /** Demo conversations loaded; the real data is parked in the store's backup slot. */
+    val demo: Boolean = false,
 )
 
 class Messenger(app: Application) : AndroidViewModel(app) {
     private val store = Store(app)
     val bluetooth = Bluetooth(app)
 
-    private val _state = MutableStateFlow(UiState(data = store.load()))
+    private val _state = MutableStateFlow(UiState(data = store.load(), demo = store.hasBackup))
     val state: StateFlow<UiState> = _state
 
     private var link: DeviceLink? = null
@@ -124,6 +127,30 @@ class Messenger(app: Application) : AndroidViewModel(app) {
     fun renameContact(address: String, name: String) = update { copy(contacts = contacts.map { if (it.address == address) it.copy(name = name) else it }) }
 
     fun dismissProblem() = _state.update { it.copy(problem = null) }
+
+    // ---- demo data (hidden: seven taps on the About version line) ---------
+
+    /** Swaps in fictional conversations for screenshots; settings are kept. Disconnects so nothing is flushed. */
+    fun loadDemo() {
+        if (_state.value.demo) return
+        disconnect()
+        store.saveBackup(data)
+        val demo = Demo.data(data)
+        _state.update { it.copy(data = demo, demo = true) }
+        store.save(demo)
+        log("demo data loaded")
+    }
+
+    /** Restores the parked real data. Anything received while the demo was loaded is dropped. */
+    fun restoreReal() {
+        val real = store.loadBackup() ?: return
+        disconnect()
+        val merged = real.copy(settings = data.settings)
+        _state.update { it.copy(data = merged, demo = false) }
+        store.save(merged)
+        store.clearBackup()
+        log("demo data cleared")
+    }
 
     // ---- connection -------------------------------------------------------
 

@@ -1,4 +1,4 @@
-# YB Second Wind — Yellowbrick v3 Android app
+# Second Wind — Yellowbrick v3 Android app
 
 Android replacement for the discontinued **YB Messenger** app. Sends and
 receives satellite messages through a Yellowbrick v3 / MkII tracker over
