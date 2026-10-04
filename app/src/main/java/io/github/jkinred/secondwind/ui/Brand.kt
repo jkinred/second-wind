@@ -14,14 +14,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.isSystemInDarkTheme
 
 /** The device's casing colour (light theme bar, connected dot) and a dimmer amber for dark theme bars. */
-val YellowbrickYellow = Color(0xFFFFD500)
-val YellowbrickAmber = Color(0xFFE6B800)
+val BrandYellow = Color(0xFFFFD500)
+val BrandAmber = Color(0xFFE6B800)
 val OnYellow = Color(0xFF1C1B1F)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ybTopBarColors(): TopAppBarColors {
-    val bg = if (isSystemInDarkTheme()) YellowbrickAmber else YellowbrickYellow
+fun brandTopBarColors(): TopAppBarColors {
+    val bg = if (isSystemInDarkTheme()) BrandAmber else BrandYellow
     return TopAppBarDefaults.topAppBarColors(
         containerColor = bg, scrolledContainerColor = bg,
         titleContentColor = OnYellow, navigationIconContentColor = OnYellow, actionIconContentColor = OnYellow,
@@ -29,7 +29,7 @@ fun ybTopBarColors(): TopAppBarColors {
 }
 
 /** A Yellowbrick seen face-on — tall rounded body, keypad bar, antenna stub top-left, two uplink arcs. 24 dp grid, 2 px stroke. */
-val YbIcon: ImageVector by lazy {
+val DeviceIcon: ImageVector by lazy {
     ImageVector.Builder(name = "Yellowbrick", defaultWidth = 24.dp, defaultHeight = 24.dp, viewportWidth = 24f, viewportHeight = 24f).apply {
         listOf(
             "M10 12 h4 a2.5 2.5 0 0 1 2.5 2.5 v6 a2.5 2.5 0 0 1 -2.5 2.5 h-4 a2.5 2.5 0 0 1 -2.5 -2.5 v-6 a2.5 2.5 0 0 1 2.5 -2.5 z",

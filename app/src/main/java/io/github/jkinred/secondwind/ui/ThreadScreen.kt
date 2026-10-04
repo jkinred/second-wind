@@ -143,7 +143,7 @@ fun ThreadScreen(
         topBar = {
             TopAppBar(
                 title = { Text(title, maxLines = 1) },
-                colors = ybTopBarColors(),
+                colors = brandTopBarColors(),
                 navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } },
                 actions = {
                     if (canMerge) {

@@ -69,8 +69,8 @@ fun ConnectPill(state: UiState, bluetoothOn: Boolean, onConnect: () -> Unit, onD
             .semantics { contentDescription = label },
         contentAlignment = Alignment.Center,
     ) {
-        val bg = if (isSystemInDarkTheme()) YellowbrickAmber else YellowbrickYellow
-        Icon(YbIcon, null, Modifier.size(24.dp), tint = if (connected) bg else OnYellow.copy(alpha = if (state.link == Link.CONNECTING) 0.5f else 1f))
+        val bg = if (isSystemInDarkTheme()) BrandAmber else BrandYellow
+        Icon(DeviceIcon, null, Modifier.size(24.dp), tint = if (connected) bg else OnYellow.copy(alpha = if (state.link == Link.CONNECTING) 0.5f else 1f))
         if (state.link == Link.CONNECTING) CircularProgressIndicator(Modifier.size(34.dp), strokeWidth = 2.dp, color = OnYellow)
         if (blocked) Box(
             Modifier.align(Alignment.TopEnd).padding(2.dp).size(14.dp).clip(CircleShape).background(MaterialTheme.colorScheme.error),

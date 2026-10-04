@@ -12,6 +12,8 @@ val keystoreProps = Properties().apply {
     if (f.exists()) f.inputStream().use { load(it) }
 }
 
+base.archivesName = "second-wind"
+
 android {
     namespace = "io.github.jkinred.secondwind"
     compileSdk = 35
@@ -20,8 +22,8 @@ android {
         applicationId = "io.github.jkinred.secondwind"
         minSdk = 31
         targetSdk = 35
-        versionCode = 6
-        versionName = "0.1.5"
+        versionCode = 7
+        versionName = "0.1.6"
         androidResources { localeFilters += "en" }
     }
 

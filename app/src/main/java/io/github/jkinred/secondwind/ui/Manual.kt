@@ -125,7 +125,7 @@ fun ManualScreen(onBack: () -> Unit) {
     Scaffold(topBar = {
         TopAppBar(
             title = { Text("Device guide") },
-            colors = ybTopBarColors(),
+            colors = brandTopBarColors(),
             navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } },
             actions = { TextButton(onClick = { ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(MANUAL_URL))) }) { Text("Full manual (PDF)", color = OnYellow) } },
         )

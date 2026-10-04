@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Yellowbrick glyph, same path data as ui/Brand.kt YbIcon (24-unit grid), scaled into the 66 dp adaptive-icon safe zone. -->
+<!-- Yellowbrick glyph, same path data as ui/Brand.kt DeviceIcon (24-unit grid), scaled into the 66 dp adaptive-icon safe zone. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"

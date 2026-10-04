@@ -55,7 +55,7 @@ fun HomeScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Second Wind") },
-                colors = ybTopBarColors(),
+                colors = brandTopBarColors(),
                 actions = {
                     SettingsPill(onStatus)
                     ConnectPill(state, bluetoothOn, onConnect = onConnect, onDisconnect = onDisconnect, onOpenSheet = onStatus)

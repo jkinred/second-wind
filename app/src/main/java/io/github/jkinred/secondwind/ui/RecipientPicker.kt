@@ -131,7 +131,7 @@ fun RecipientPicker(
         topBar = {
             TopAppBar(
                 title = { Text("New message") },
-                colors = ybTopBarColors(),
+                colors = brandTopBarColors(),
                 navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } },
                 actions = {
                     TextButton(

@@ -2,6 +2,18 @@
 
 All notable changes to Second Wind. Format follows Keep a Changelog; versions follow SemVer.
 
+## [0.1.6] — 2026-10-04
+
+### Changed
+- Build artefacts renamed: Gradle project `yb-second-wind` → `second-wind`, APK `app-*.apk` → `second-wind-*.apk`. Out-of-tree build property `yb.buildRoot` → `secondwind.buildRoot`.
+- Internal brand identifiers renamed (`YbIcon` → `DeviceIcon`, `ybTopBarColors` → `brandTopBarColors`, `YellowbrickYellow`/`Amber` → `BrandYellow`/`BrandAmber`). No visible change.
+
+## [0.1.5] — 2026-10-04
+
+### Added
+- Recipient validation: phone numbers must be international (country code, no leading `+`/`00`/trunk `0`); whitespace, `+` and `-` are stripped. Invalid recipients open a "Correct recipient" dialog before the message is queued. Rules in `docs/PROTOCOL.md` §4.3.1.
+- Threads match recipients by normalised address, so `+44 7700 900123` and `447700900123` land in the same conversation.
+
 ## [0.1.4] — 2026-10-03
 
 ### Added

@@ -90,7 +90,7 @@ fun SettingsScreen(
     Scaffold(topBar = {
         TopAppBar(
             title = { Text("Settings") },
-            colors = ybTopBarColors(),
+            colors = brandTopBarColors(),
             navigationIcon = { IconButton(onClick = { save(); onBack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } },
         )
     }) { pad ->
@@ -189,7 +189,7 @@ fun TroubleshootingScreen(vm: Messenger, log: List<String>, deviceName: String, 
     Scaffold(topBar = {
         TopAppBar(
             title = { Text("Troubleshooting") },
-            colors = ybTopBarColors(),
+            colors = brandTopBarColors(),
             navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } },
             actions = { TextButton(onClick = { clipboard.setText(AnnotatedString(vm.exportLog())) }) { Text("Copy log", color = OnYellow) } },
         )
@@ -237,7 +237,7 @@ fun AboutScreen(vm: Messenger, version: String, demo: Boolean, onBack: () -> Uni
     Scaffold(topBar = {
         TopAppBar(
             title = { Text("About") },
-            colors = ybTopBarColors(),
+            colors = brandTopBarColors(),
             navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } },
         )
     }) { pad ->

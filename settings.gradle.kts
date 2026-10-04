@@ -12,5 +12,5 @@ dependencyResolutionManagement {
         mavenCentral()
     }
 }
-rootProject.name = "yb-second-wind"
+rootProject.name = "second-wind"
 include(":app")
