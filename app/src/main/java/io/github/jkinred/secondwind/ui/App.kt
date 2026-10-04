@@ -23,7 +23,6 @@ import io.github.jkinred.secondwind.Messenger
 import io.github.jkinred.secondwind.data.Direction
 import io.github.jkinred.secondwind.data.OutState
 import io.github.jkinred.secondwind.data.Threads
-import io.github.jkinred.secondwind.proto.Payload
 
 private sealed interface Screen {
     data object Home : Screen
@@ -103,7 +102,12 @@ fun App(vm: Messenger, version: String) {
                 state = state, identities = s.identities, preferred = s.preferred, group = s.group, thread = thread, otherThreads = others,
                 bluetoothOn = bluetoothOn,
                 onBack = { screen = Screen.Home }, onStatus = { sheet = true }, onConnect = connect, onDisconnect = vm::disconnect,
-                onQueue = { addrs, text -> vm.queue(addrs, text, s.group); if (state.link == Link.DISCONNECTED && state.problem == null) connect() },
+                onQueue = { addrs, text ->
+                    vm.queue(addrs, text, s.group)
+                    // Follow corrected destinations and let later replies choose the received route.
+                    screen = Screen.Thread(addrs.map { Threads.resolve(it, contacts) }.distinct(), s.group)
+                    if (state.link == Link.DISCONNECTED && state.problem == null) connect()
+                },
                 onDelete = { vm.delete(it.id) },
                 onMerge = { absorb -> vm.mergeContacts(keep = s.identities.single(), absorb = absorb) },
             )
@@ -114,7 +118,7 @@ fun App(vm: Messenger, version: String) {
             onBack = { screen = Screen.Home },
             onPin = vm::pinContact, onUnpin = vm::unpinContact,
             onNext = { addrs, group ->
-                screen = Screen.Thread(addrs.map { Threads.resolve(it, contacts) }.distinct(), group, preferred = addrs.map(Payload::normaliseRecipient))
+                screen = Screen.Thread(addrs.map { Threads.resolve(it, contacts) }.distinct(), group, preferred = addrs)
             },
         )
         Screen.Settings -> SettingsScreen(

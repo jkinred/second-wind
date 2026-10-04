@@ -125,6 +125,52 @@ recipient[,recipient][,g]:text
   Each part is a separate TEXT_OUT with its own `ybId`, the same `threadId`,
   `partNo` 1..N, `totalParts` N. Only part 1 carries `includePos = 1`.
 
+#### 4.3.1 Phone recipient preparation
+
+Newly selected telephone destinations use ASCII digits: an international
+prefix followed by the remaining number, without a leading `+`. Before
+validation, remove whitespace, `+`, and ASCII `-` characters. Do not add a
+country code, translate `00`, remove parentheses, or guess a trunk-prefix
+correction. Invalid input remains available for correction and cannot be
+queued as a new destination. E-mail addresses follow the existing recipient
+rules above; a `+` inside an e-mail address is not phone formatting.
+
+Accepted numbers consist of one of the prefixes below followed by 0–14
+additional ASCII digits. Ranges are inclusive. This is a compatibility check,
+not proof that a number is assigned or valid within a national numbering plan;
+it intentionally does not impose stricter national-length or E.164 rules.
+
+| Prefix length | Accepted prefixes |
+|---------------|-------------------|
+| 1 | 1, 7 |
+| 2 | 20, 27, 30–34, 36, 39–41, 43–49, 51–58, 60–66, 81, 82, 84, 86, 90–95, 98 |
+| 3 | 210–269, 280–299, 350–359, 370–389, 420–429, 500–509, 590–599, 670–699, 800–809, 830–839, 850–859, 870–899, 960–979, 990–999 |
+
+| New destination input | Prepared address / outcome |
+|-----------------------|----------------------------|
+| `+44 7700-900123` | `447700900123` |
+| `447700900123` | unchanged |
+| `07700900123` | correction required; no implicit country code |
+| `00447700900123` | correction required; no access-prefix conversion |
+| `+44 (0)7700 900123` | correction required; parentheses are not removed |
+| `Alice+tag@Example.com` | `alice+tag@example.com` |
+
+Commas and semicolons delimit manually entered recipients. Spaces within a
+telephone input do not create extra recipients. Apply preparation to new
+selections, including contacts, favourites, recents, and explicit channel
+changes, before computing the payload length, credit estimate, parts, or IDs.
+An unchanged reply uses the received routing address with only the general
+recipient escaping/lowercasing above, not telephone input validation.
+
+Preparation is not performed when rebuilding an already queued message.
+Persisted recipients, part boundaries, IDs, and acceptance records must remain
+unchanged on retry. A corrected resend is a new, explicitly queued message.
+Contact matching may equate valid formatted and digits-only telephone values
+without rewriting historical addresses or dropping contact names and aliases.
+
+These are client output and input-handling conventions, not evidence that the
+service rejects every alternate spelling or that a handset received a message.
+
 ### 4.4 Credit cost (vendor-published billing rule)
 
 - Up to 50 payload characters = 1 credit; each further 50 = 1 more.
@@ -246,6 +292,7 @@ Outbound frames for placeholder keyword `abcd`, password `wxyz` (computed from
 | ACK `0x1234` | `01000b61626364000004123401df04` |
 | MAILBOX_CHECK | `01000961626364000005019804` |
 | TEXT_OUT `a@b.c:hi`, ybId `0x1234`, pos 1, now 1, 1 part | `01001e6162636400000112340101017778797a616263646140622e633a686907fd04` |
+| TEXT_OUT `447700900123:hi` after preparing `+44 7700-900123`, ybId `0x1234`, pos 1, now 1, 1 part | `0100256162636400000112340101017778797a616263643434373730303930303132333a686908d504` |
 | Mode `S`, ybId `0x0001` | `0100176162636400000100010001007778797a6162636453056304` |
 
 ## 7. Provenance

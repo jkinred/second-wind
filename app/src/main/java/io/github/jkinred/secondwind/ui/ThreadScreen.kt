@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -60,10 +62,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.github.jkinred.secondwind.UiState
 import io.github.jkinred.secondwind.data.Contact
+import io.github.jkinred.secondwind.data.Destination
 import io.github.jkinred.secondwind.data.Direction
 import io.github.jkinred.secondwind.data.Message
 import io.github.jkinred.secondwind.data.OutState
 import io.github.jkinred.secondwind.data.Thread
+import io.github.jkinred.secondwind.data.Threads
 import io.github.jkinred.secondwind.proto.Payload
 
 const val ACCEPTED_EXPLANATION =
@@ -101,7 +105,7 @@ fun ThreadScreen(
     val messages = thread?.messages ?: emptyList()
     val title = remember(identities, group, contacts) {
         buildList {
-            addAll(identities.map { id -> contacts.firstOrNull { it.address == id }?.display ?: id })
+            addAll(identities.map { id -> contacts.firstOrNull { it.owns(id) }?.display ?: id })
             if (group) add("My group")
         }.joinToString(", ")
     }
@@ -114,18 +118,25 @@ fun ThreadScreen(
     var merging by remember { mutableStateOf(false) }
     val listState = rememberLazyListState()
 
-    // Send address per identity: default to the channel last used in this thread; user may switch.
-    val single = identities.singleOrNull()?.let { id -> contacts.firstOrNull { it.address == id } }?.takeIf { it.aliases.isNotEmpty() }
-    var via by rememberSaveable(identities, thread?.messages?.size) {
-        mutableStateOf(single?.let { c -> preferred.firstOrNull(c::owns) ?: thread?.lastAddressFor(c.address, contacts) ?: c.address })
+    // Overrides are new selections, never a rewrite of a historic recipient or received sender.
+    var overrides by remember(identities) { mutableStateOf<Map<String, String>>(emptyMap()) }
+    var correcting by remember(identities) { mutableStateOf<Pair<String, String>?>(null) }
+    val destinations = remember(identities, overrides, preferred, contacts, thread) {
+        val selections = identities.mapNotNull { id ->
+            overrides[id] ?: preferred.firstOrNull { Threads.resolve(it, contacts) == Threads.resolve(id, contacts) }
+        }
+        Threads.destinations(identities.map { overrides[it] ?: it }, selections, contacts, thread)
     }
-    val sendTo = remember(identities, via, contacts, messages.size) {
-        identities.map { id -> if (single != null && id == single.address) via ?: id else thread?.lastAddressFor(id, contacts) ?: id }
+    val sendTo = destinations.mapNotNull { it.preparedAddress }.distinct()
+    val allPrepared = destinations.all { it.preparedAddress != null }
+    val channels = identities.mapIndexedNotNull { index, id ->
+        contacts.firstOrNull { it.owns(id) }?.takeIf { it.aliases.isNotEmpty() }?.let { it to destinations[index].address }
     }
+    val canQueue = allPrepared && correcting == null && text.isNotBlank() && (sendTo.isNotEmpty() || group)
 
     LaunchedEffect(messages.size) { if (messages.isNotEmpty()) listState.animateScrollToItem(messages.size - 1) }
 
-    val est = remember(text, sendTo, group) { Payload.estimate(sendTo, text, group) }
+    val est = remember(text, sendTo, group, allPrepared) { if (allPrepared) Payload.estimate(sendTo, text, group) else null }
     val canMerge = !group && identities.size == 1 && otherThreads.isNotEmpty()
 
     Scaffold(
@@ -162,12 +173,32 @@ fun ThreadScreen(
                 text = text,
                 onText = { text = it },
                 est = est,
-                via = single?.let { c -> via?.let { v -> c to v } },
-                onVia = { v -> via = v },
-                canQueue = text.isNotBlank() && (sendTo.isNotEmpty() || group),
-                onQueue = { onQueue(sendTo, text.trim()); text = "" },
+                destinations = destinations,
+                onCorrect = { index -> correcting = identities[index] to destinations[index].address },
+                via = channels,
+                onVia = { c, address ->
+                    val id = identities.first { c.owns(it) }
+                    overrides = overrides + (id to address)
+                    if (Payload.prepareRecipient(address) == null) correcting = id to address
+                },
+                canQueue = canQueue,
+                onQueue = {
+                    if (canQueue) {
+                        onQueue(sendTo, text.trim())
+                        text = ""
+                        overrides = emptyMap()
+                    }
+                },
             )
         }
+    }
+
+    correcting?.let { (id, address) ->
+        RecipientCorrectionDialog(
+            address = address, name = contacts.firstOrNull { it.owns(id) }?.name.orEmpty(), phoneOnly = '@' !in address,
+            onConfirm = { prepared -> overrides = overrides + (id to prepared); correcting = null },
+            onDismiss = { correcting = null },
+        )
     }
 
     explain?.let {
@@ -330,26 +361,41 @@ private fun MessageInfoDialog(m: Message, contacts: List<Contact>, onDismiss: ()
     )
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun Composer(
     text: String,
     onText: (String) -> Unit,
-    est: Payload.Estimate,
-    via: Pair<Contact, String>?,
-    onVia: (String) -> Unit,
+    est: Payload.Estimate?,
+    destinations: List<Destination>,
+    onCorrect: (Int) -> Unit,
+    via: List<Pair<Contact, String>>,
+    onVia: (Contact, String) -> Unit,
     canQueue: Boolean,
     onQueue: () -> Unit,
 ) {
     Surface(tonalElevation = 2.dp) {
         Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
-            if (via != null) {
-                val (c, current) = via
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text("Send via", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            destinations.forEachIndexed { index, destination ->
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        "To: ${destination.preparedAddress ?: destination.address}", Modifier.weight(1f),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (destination.preparedAddress == null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    if (destination.preparedAddress == null) TextButton(onClick = { onCorrect(index) }) { Text("Correct recipient") }
+                }
+            }
+            via.forEach { (c, current) ->
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        if (destinations.size == 1) "Send via" else "${c.display} via",
+                        style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                     c.addresses.forEach { a ->
                         AssistChip(
-                            onClick = { onVia(a) },
-                            label = { Text(channelName(a) + if (a == current) " ✓" else "", style = MaterialTheme.typography.labelSmall) },
+                            onClick = { onVia(c, a) },
+                            label = { Text(channelName(a) + if (Payload.recipientKey(a) == Payload.recipientKey(current)) " ✓" else "", style = MaterialTheme.typography.labelSmall) },
                             leadingIcon = { Icon(channelIcon(a), null, Modifier.size(14.dp)) },
                         )
                     }
@@ -366,12 +412,16 @@ private fun Composer(
                 Button(onClick = onQueue, enabled = canQueue) { Text("Queue") }
             }
             Box(Modifier.padding(top = 4.dp)) {
-                val sms = if (est.smsRecipients > 0) " (${est.smsRecipients} SMS)" else ""
-                val grp = if (est.group) " + group" else ""
-                Text(
-                    "${est.chars} chars incl. address · ${est.parts} part${if (est.parts == 1) "" else "s"} · ~${est.credits} cr$sms$grp",
-                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                if (est == null) {
+                    Text("Correct the recipient before queueing or estimating credits.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                } else {
+                    val sms = if (est.smsRecipients > 0) " (${est.smsRecipients} SMS)" else ""
+                    val grp = if (est.group) " + group" else ""
+                    Text(
+                        "${est.chars} chars incl. address · ${est.parts} part${if (est.parts == 1) "" else "s"} · ~${est.credits} cr$sms$grp",
+                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
         }
     }

@@ -2,9 +2,15 @@ package io.github.jkinred.secondwind.data
 
 import io.github.jkinred.secondwind.proto.Payload
 
+/** The selected address and its source; only received reply routes bypass telephone preparation. */
+data class Destination(val address: String, val isReply: Boolean = false) {
+    val preparedAddress: String? =
+        if (isReply) Payload.normaliseRecipient(address) else Payload.prepareRecipient(address)
+}
+
 /**
  * One conversation. [identities] are contact primary addresses where a contact owns the
- * address, otherwise the raw address; two threads with the same identities are the same thread.
+ * address, otherwise its recipient key; two threads with the same identities are the same thread.
  */
 class Thread(
     val key: String,
@@ -20,22 +26,37 @@ class Thread(
         val names = identities.map { id -> contacts.firstOrNull { it.address == id }?.display ?: id }
         return buildList { addAll(names); if (group) add("My group") }.joinToString(", ")
     }
-
-    /**
-     * The address last used with [identity] in this thread, so a reply goes back over the
-     * channel the other side last used; the contact's primary address when nothing has been exchanged.
-     */
-    fun lastAddressFor(identity: String, contacts: List<Contact>): String {
-        val c = contacts.firstOrNull { it.address == identity } ?: return identity
-        for (m in messages.asReversed()) m.counterparts.firstOrNull(c::owns)?.let { return it }
-        return c.address
-    }
 }
 
 object Threads {
-    fun resolve(address: String, contacts: List<Contact>): String {
-        val a = Payload.normaliseRecipient(address)
-        return contacts.firstOrNull { it.owns(a) }?.address ?: a
+    fun resolve(address: String, contacts: List<Contact>): String =
+        contacts.firstOrNull { it.owns(address) }?.address ?: Payload.recipientKey(address)
+
+    /** Explicit selections win; otherwise keep the latest counterpart's address and source. */
+    fun destinations(
+        identities: List<String>,
+        preferred: List<String>,
+        contacts: List<Contact>,
+        thread: Thread?,
+    ): List<Destination> = identities.map { identity ->
+        val resolved = resolve(identity, contacts)
+        val selected = preferred.firstOrNull { resolve(it, contacts) == resolved }
+        if (selected != null) {
+            Destination(selected)
+        } else {
+            var previous: Destination? = null
+            for (message in thread?.messages.orEmpty().asReversed()) {
+                val address = when (message.direction) {
+                    Direction.IN -> message.from.takeIf { resolve(it, contacts) == resolved }
+                    Direction.OUT -> message.recipients.firstOrNull { resolve(it, contacts) == resolved }
+                }
+                if (address != null) {
+                    previous = Destination(address, isReply = message.direction == Direction.IN)
+                    break
+                }
+            }
+            previous ?: Destination(identity)
+        }
     }
 
     fun key(addresses: List<String>, group: Boolean, contacts: List<Contact>): String {

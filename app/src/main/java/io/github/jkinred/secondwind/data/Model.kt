@@ -91,7 +91,10 @@ data class Contact(
     val isGroup get() = address == Payload.GROUP
     val display get() = name.ifBlank { if (isGroup) "My group" else address }
     val addresses get() = listOf(address) + aliases
-    fun owns(a: String) = a == address || a in aliases
+    fun owns(a: String): Boolean {
+        val key = Payload.recipientKey(a)
+        return Payload.recipientKey(address) == key || aliases.any { Payload.recipientKey(it) == key }
+    }
 }
 
 @Serializable

@@ -22,6 +22,15 @@ class ProtocolTest {
         Outbound.textOut(creds, TextOutPart(0x1234, "a@b.c:hi")).toHex(),
     )
 
+    @Test fun formattedPhoneProducesDigitsOnlySmsFrame() {
+        val address = Payload.prepareRecipient("+44 7700-900123")!!
+        val payload = Payload.build(listOf(address), "hi", false)
+        assertEquals(
+            "0100256162636400000112340101017778797a616263643434373730303930303132333a686908d504",
+            Outbound.textOut(creds, TextOutPart(0x1234, payload)).toHex(),
+        )
+    }
+
     @Test fun modeCommand() = assertEquals(
         "0100176162636400000100010001007778797a6162636453056304",
         Outbound.setMode(creds, Mode.STAND_ALONE, 0x0001).toHex(),
